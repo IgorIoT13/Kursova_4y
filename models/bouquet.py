@@ -7,7 +7,7 @@ def init_bouquet_model(db, Flower, Wrapping, BouquetType):
         __tablename__ = 'bouquets'
 
         id = db.Column(db.Integer, primary_key=True)
-        name = db.Column(db.String(120), nullable=True)
+        name = db.Column(db.String(120), nullable=True, unique=True)
 
         # Each Bouquet references one Flower, one Wrapping and one BouquetType
         flower_id = db.Column(db.Integer, db.ForeignKey('flowers.id'), nullable=True)

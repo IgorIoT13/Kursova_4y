@@ -12,6 +12,12 @@ class BouquetService:
         data = builder.build()
         # create DAO with actual model import to avoid circulars
         self.dao.model = Bouquet
+        # business-level uniqueness check
+        name = data.get('name')
+        if name:
+            existing = self.session.query(Bouquet).filter(Bouquet.name == name).first()
+            if existing:
+                raise ValueError(f"Bouquet with name '{name}' already exists")
         return self.dao.create(**data)
 
     def get(self, bouquet_id: int):
@@ -24,6 +30,12 @@ class BouquetService:
 
     def update(self, bouquet_id: int, **fields):
         self.dao.model = Bouquet
+        # If updating name, ensure uniqueness
+        if 'name' in fields and fields['name']:
+            name = fields['name']
+            q = self.session.query(Bouquet).filter(Bouquet.name == name, Bouquet.id != bouquet_id)
+            if self.session.query(q.exists()).scalar():
+                raise ValueError(f"Bouquet with name '{name}' already exists")
         return self.dao.update(bouquet_id, **fields)
 
     def delete(self, bouquet_id: int):
