@@ -5,9 +5,10 @@ def init_bouquet_type_model(db):
     class BouquetType(db.Model):
         __tablename__ = 'bouquet_types'
         id = db.Column(db.Integer, primary_key=True)
-        # Many-to-one: many types may belong to one bouquet
-        bouquet_id = db.Column(db.Integer, db.ForeignKey('bouquets.id'), nullable=True)
+
+        # One-to-many: a bouquet type can be used in many bouquets
         type = db.Column(db.String(120), nullable=False)
+        bouquets = db.relationship('Bouquet', back_populates='type', lazy=True)
 
         def __repr__(self):
             return f"<BouquetType {self.type}>"
@@ -15,7 +16,8 @@ def init_bouquet_type_model(db):
         def to_dict(self):
             return {
                 'id': self.id,
-                'type': self.type
+                'type': self.type,
+                'bouquets': [b.id for b in self.bouquets]
             }
 
     return BouquetType
