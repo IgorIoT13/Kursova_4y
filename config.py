@@ -19,6 +19,9 @@ class Config:
     DB_NAME = os.environ.get('DB_NAME', 'flask_db')
     
     # SQLAlchemy configuration
+    # Note: If your password contains special characters, use URL encoding
+    # Example: from urllib.parse import quote_plus
+    # DB_PASSWORD = quote_plus('p@ssw0rd!')
     SQLALCHEMY_DATABASE_URI = (
         f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
     )

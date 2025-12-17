@@ -76,7 +76,7 @@ flask run
 - `GET /` - Welcome message
 - `GET /health` - Health check and database connection status
 - `GET /users` - Get all users
-- `GET /users/create/<username>/<email>` - Create a new user (for testing)
+- `GET /users/create/<username>/<email>` - Create a new user (for testing only - use POST in production)
 
 ## Project Structure
 
