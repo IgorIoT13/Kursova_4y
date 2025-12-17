@@ -69,9 +69,11 @@ def load_sample(auto_commit: bool = True) -> List[int]:
 
         # create a bouquet for each combination
         for f in flowers:
+            i=0
             for w in wrappings:
                 for t in types:
-                    b = bdao.create(name=f"{f.name} combo", flower_id=f.id, wrapping_id=w.id, type_id=t.id, flowers_count=3)
+                    i+=1
+                    b = bdao.create(name=f"{f.name} combo_{i}", flower_id=f.id, wrapping_id=w.id, type_id=t.id, flowers_count=3)
                     created_ids.append(b.id)
 
     return created_ids
