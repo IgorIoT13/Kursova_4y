@@ -3,8 +3,16 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
-# Import and initialize models after db is defined
-from models.user import init_user_model
-User = init_user_model(db)
+# Import model initializers
+from models.flower import init_flower_model
+from models.wrapping import init_wrapping_model
+from models.bouquet_type import init_bouquet_type_model
+from models.bouquet import init_bouquet_model
 
-__all__ = ['db', 'User']
+# Initialize models after db is defined
+Flower = init_flower_model(db)
+Wrapping = init_wrapping_model(db)
+BouquetType = init_bouquet_type_model(db)
+Bouquet = init_bouquet_model(db, Flower, Wrapping, BouquetType)
+
+__all__ = ['db', 'Flower', 'Wrapping', 'BouquetType', 'Bouquet']
