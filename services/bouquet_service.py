@@ -29,21 +29,3 @@ class BouquetService:
     def delete(self, bouquet_id: int):
         self.dao.model = Bouquet
         return self.dao.delete(bouquet_id)
-
-    def purchase(self, bouquet_id: int, qty: int = 1):
-        """Decrease quantity by qty, not below zero."""
-        self.dao.model = Bouquet
-        b = self.dao.get(bouquet_id)
-        if not b:
-            return None
-        new_q = max(0, (b.quantity or 0) - qty)
-        return self.dao.update(bouquet_id, quantity=new_q)
-
-    def restock(self, bouquet_id: int, qty: int = 1):
-        """Increase quantity by qty."""
-        self.dao.model = Bouquet
-        b = self.dao.get(bouquet_id)
-        if not b:
-            return None
-        new_q = (b.quantity or 0) + qty
-        return self.dao.update(bouquet_id, quantity=new_q)

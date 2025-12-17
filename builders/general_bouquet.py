@@ -13,7 +13,6 @@ class GeneralBouquet(BuilderInterface):
             'wrapping_id': None,
             'type_id': None,
             'flowers_count': 0,
-            'quantity': 0,
         }
         return self
 
@@ -35,10 +34,6 @@ class GeneralBouquet(BuilderInterface):
 
     def set_flowers_count(self, count: int):
         self._data['flowers_count'] = count
-        return self
-
-    def set_quantity(self, qty: int):
-        self._data['quantity'] = qty
         return self
 
     def build(self) -> Dict:

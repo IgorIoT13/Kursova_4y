@@ -1,5 +1,5 @@
 """Wrapping model."""
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 def init_wrapping_model(db):
@@ -9,7 +9,7 @@ def init_wrapping_model(db):
         id = db.Column(db.Integer, primary_key=True)
         name = db.Column(db.String(120), nullable=False)
         price = db.Column(db.Numeric(10, 2), nullable=False)
-        created_at = db.Column(db.DateTime, default=datetime.utcnow)
+        created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
         # One-to-many: a wrapping can be used in many bouquets
         bouquets = db.relationship('Bouquet', back_populates='wrapping', lazy=True)

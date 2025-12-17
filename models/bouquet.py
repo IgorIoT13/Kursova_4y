@@ -1,5 +1,5 @@
 """Bouquet model."""
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 def init_bouquet_model(db, Flower, Wrapping, BouquetType):
@@ -20,8 +20,7 @@ def init_bouquet_model(db, Flower, Wrapping, BouquetType):
         type = db.relationship('BouquetType', back_populates='bouquets', foreign_keys=[type_id])
 
         flowers_count = db.Column(db.Integer, default=0)
-        quantity = db.Column(db.Integer, default=0)
-        created_at = db.Column(db.DateTime, default=datetime.utcnow)
+        created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
         def __repr__(self):
             return f"<Bouquet {self.id}>"
@@ -34,7 +33,6 @@ def init_bouquet_model(db, Flower, Wrapping, BouquetType):
                 'flower': self.flower.to_dict() if self.flower else None,
                 'type': self.type.to_dict() if self.type else None,
                 'flowers_count': self.flowers_count,
-                'quantity': self.quantity,
                 'created_at': self.created_at.isoformat() if self.created_at else None
             }
 
