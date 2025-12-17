@@ -40,6 +40,17 @@ def create_app(config_name=None):
     # Initialize extensions
     db.init_app(app)
     
+    # Optional: run precondition loader if explicitly enabled via env var
+    if os.environ.get('PRECONDITION_AUTOLOAD', '').lower() in ('1', 'true', 'yes'):
+        try:
+            from precondition.load_sample import load_sample
+            with app.app_context():
+                print('Running precondition autoload...')
+                load_sample()
+        except Exception as e:
+            # don't fail app startup for precondition; surface a warning
+            print('Precondition autoload failed:', e)
+
     # Register routes
     register_routes(app)
     
