@@ -3,7 +3,7 @@ from services.bouquet_service import BouquetService
 from dao.flower_dao import FlowerDAO
 from dao.wrapping_dao import WrappingDAO
 from dao.bouquet_type_dao import BouquetTypeDAO
-
+from models import Flower, Wrapping, BouquetType
 
 def test_bouquet_service_create(session):
     # create parent records
@@ -11,7 +11,6 @@ def test_bouquet_service_create(session):
     wdao = WrappingDAO(None, session)
     tdao = BouquetTypeDAO(None, session)
     # bind models
-    from models import Flower, Wrapping, BouquetType
     fdao.model = Flower
     wdao.model = Wrapping
     tdao.model = BouquetType
