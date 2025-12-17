@@ -1,7 +1,6 @@
+"""User model."""
 from datetime import datetime
-from flask_sqlalchemy import SQLAlchemy
-
-db = SQLAlchemy()
+from models import db
 
 
 class User(db.Model):

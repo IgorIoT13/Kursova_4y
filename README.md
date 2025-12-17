@@ -84,7 +84,13 @@ flask run
 Kursova_4y/
 ├── app.py              # Main application file
 ├── config.py           # Configuration settings
-├── models.py           # Database models
+├── models/             # Database models
+│   ├── __init__.py     # Models package initialization
+│   └── user.py         # User model
+├── routes/             # Application routes
+│   ├── __init__.py     # Routes package initialization
+│   ├── main.py         # Main routes (index, health)
+│   └── user_routes.py  # User-related routes
 ├── requirements.txt    # Python dependencies
 ├── .env.example        # Environment variables template
 ├── .gitignore         # Git ignore file
@@ -110,9 +116,16 @@ Set the environment using the `FLASK_ENV` variable in your `.env` file.
 ## Development
 
 To add new models:
-1. Create model class in `models.py`
-2. Import in `app.py`
-3. Restart the application (tables will be created automatically)
+1. Create a new model file in the `models/` directory (e.g., `models/product.py`)
+2. Define your model class inheriting from `db.Model`
+3. Import and export it in `models/__init__.py`
+4. Restart the application (tables will be created automatically)
+
+To add new routes:
+1. Create a new route file in the `routes/` directory or add to existing files
+2. Define a function that registers routes (e.g., `def product_routes(app)`)
+3. Import and call it in `routes/__init__.py` within the `register_routes()` function
+4. Restart the application
 
 ## Testing
 
