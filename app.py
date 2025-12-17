@@ -3,6 +3,8 @@ from flask import Flask
 from config import config
 from models import db
 from routes import register_routes
+from typing import Optional
+import pymysql
 
 
 def create_app(config_name=None):
@@ -12,7 +14,29 @@ def create_app(config_name=None):
     
     app = Flask(__name__)
     app.config.from_object(config[config_name])
-    
+
+    # Ensure the physical database exists (create if missing) before initializing SQLAlchemy
+    def ensure_database_exists(app):
+        cfg = app.config
+        db_name = cfg.get('DB_NAME')
+        host = cfg.get('DB_HOST', 'localhost')
+        port = int(cfg.get('DB_PORT', 3306))
+        user = cfg.get('DB_USER', '')
+        password = cfg.get('DB_PASSWORD', '')
+
+        # Use PyMySQL to connect to the server (without selecting a database)
+        try:
+            conn = pymysql.connect(host=host, port=port, user=user, password=password, charset='utf8mb4')
+            with conn.cursor() as cur:
+                cur.execute(f"CREATE DATABASE IF NOT EXISTS `{db_name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;")
+            conn.commit()
+            conn.close()
+        except Exception:
+            # Re-raise so startup fails loudly if DB server is unreachable or credentials are wrong
+            raise
+
+    ensure_database_exists(app)
+
     # Initialize extensions
     db.init_app(app)
     

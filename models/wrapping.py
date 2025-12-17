@@ -7,6 +7,8 @@ def init_wrapping_model(db):
         __tablename__ = 'wrappings'
 
         id = db.Column(db.Integer, primary_key=True)
+        # Many-to-one: multiple wrappings may be associated with one bouquet
+        bouquet_id = db.Column(db.Integer, db.ForeignKey('bouquets.id'), nullable=True)
         name = db.Column(db.String(120), nullable=False)
         price = db.Column(db.Numeric(10, 2), nullable=False)
         created_at = db.Column(db.DateTime, default=datetime.utcnow)
