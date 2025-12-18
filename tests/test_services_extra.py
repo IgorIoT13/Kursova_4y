@@ -1,16 +1,10 @@
 from services.flower_service import FlowerService
 from services.wrapping_service import WrappingService
 from services.bouquet_type_service import BouquetTypeService
-from dao.flower_dao import FlowerDAO
-from dao.wrapping_dao import WrappingDAO
-from dao.bouquet_type_dao import BouquetTypeDAO
 from models import Flower, Wrapping, BouquetType
 
 
 def test_flower_service_crud_and_filters(session):
-    fdao = FlowerDAO(None, session)
-    fdao.model = Flower
-
     service = FlowerService(session)
 
     # create
@@ -41,9 +35,6 @@ def test_flower_service_crud_and_filters(session):
 
 
 def test_wrapping_service_crud_and_filters(session):
-    wdao = WrappingDAO(None, session)
-    wdao.model = Wrapping
-
     service = WrappingService(session)
 
     w = service.create('W1', 0.75)
@@ -64,9 +55,6 @@ def test_wrapping_service_crud_and_filters(session):
 
 
 def test_bouquet_type_service_crud(session):
-    tdao = BouquetTypeDAO(None, session)
-    tdao.model = BouquetType
-
     service = BouquetTypeService(session)
 
     t = service.create('TypeA')

@@ -1,24 +1,20 @@
 import pytest
 from builders.general_bouquet import GeneralBouquet
 from services.bouquet_service import BouquetService
-from dao.flower_dao import FlowerDAO
-from dao.wrapping_dao import WrappingDAO
-from dao.bouquet_type_dao import BouquetTypeDAO
+from services.flower_service import FlowerService
+from services.wrapping_service import WrappingService
+from services.bouquet_type_service import BouquetTypeService
 from models import Flower, Wrapping, BouquetType
 
 def test_bouquet_service_create(session):
     # create parent records
-    fdao = FlowerDAO(None, session)
-    wdao = WrappingDAO(None, session)
-    tdao = BouquetTypeDAO(None, session)
-    # bind models
-    fdao.model = Flower
-    wdao.model = Wrapping
-    tdao.model = BouquetType
+    fsvc = FlowerService(session)
+    wsvc = WrappingService(session)
+    tsvc = BouquetTypeService(session)
 
-    flower = fdao.create(name='TestFlower', price=1.0)
-    wrapping = wdao.create(name='TestWrap', price=0.5)
-    btype = tdao.create(type='TestType')
+    flower = fsvc.create('TestFlower', 1.0)
+    wrapping = wsvc.create('TestWrap', 0.5)
+    btype = tsvc.create('TestType')
 
     # build bouquet
     builder = GeneralBouquet()
@@ -44,16 +40,13 @@ def test_bouquet_service_create(session):
 
 
 def test_unique_name_create_and_update(session):
-    fdao = FlowerDAO(None, session)
-    wdao = WrappingDAO(None, session)
-    tdao = BouquetTypeDAO(None, session)
-    fdao.model = Flower
-    wdao.model = Wrapping
-    tdao.model = BouquetType
+    fsvc = FlowerService(session)
+    wsvc = WrappingService(session)
+    tsvc = BouquetTypeService(session)
 
-    flower = fdao.create(name='UFlower', price=1.0)
-    wrapping = wdao.create(name='UWrap', price=1.0)
-    btype = tdao.create(type='UType')
+    flower = fsvc.create('UFlower', 1.0)
+    wrapping = wsvc.create('UWrap', 1.0)
+    btype = tsvc.create('UType')
 
     service = BouquetService(session)
 
