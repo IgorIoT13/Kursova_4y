@@ -13,6 +13,7 @@
       <a href="/">Home</a>
       {% if session.get('user_id') %}
         | <a href="/profile/{{ session.get('user_id') }}">My Account</a>
+        | <a href="/cart">Cart</a>
         | <a href="/logout">Logout</a>
       {% else %}
         | <a href="/login">Login</a>
@@ -23,7 +24,15 @@
     <h2>Available Bouquets</h2>
     <ul>
       {% for pos in positions %}
-      <li><a href="/bouquet/{{ pos.bouquet.id }}">{{ pos.bouquet.name }}</a> — {{ pos.price }} USD ({{ pos.quantity }} in stock)</li>
+      <li>
+        <a href="/bouquet/{{ pos.bouquet.id }}">{{ pos.bouquet.name }}</a> — {{ pos.price }} USD ({{ pos.quantity }} in stock)
+        {% if pos.quantity > 0 %}
+        <form method="post" action="/cart/add/{{ pos.id }}" style="display:inline">
+          <label>Qty: <input name="quantity" type="number" min="1" max="{{ pos.quantity }}" value="1" style="width:4rem"></label>
+          <button type="submit">Add</button>
+        </form>
+        {% endif %}
+      </li>
       {% else %}
       <li>No positions available</li>
       {% endfor %}

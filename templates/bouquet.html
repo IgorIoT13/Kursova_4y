@@ -16,6 +16,12 @@
     <p>Wrapping: {{ bouquet.wrapping.name }}</p>
     <p>Price: {{ position.price if position else 'N/A' }} USD</p>
     <p>Stock: {{ position.quantity if position else 0 }}</p>
+    {% if position and position.quantity > 0 %}
+    <form method="post" action="/cart/add/{{ position.id }}">
+      <label>Qty: <input name="quantity" type="number" min="1" max="{{ position.quantity }}" value="1" style="width:4rem"></label>
+      <button type="submit">Add to cart</button>
+    </form>
+    {% endif %}
   </main>
   <footer>
     <small>Demo shop</small>

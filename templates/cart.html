@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Cart</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header><h1>Cart</h1><nav><a href="/">Home</a> | <a href="/shop">Shop</a></nav></header>
+  <main>
+    {% if not cart or cart|length == 0 %}
+      <p>Your cart is empty.</p>
+    {% else %}
+      <ul>
+        {% for item in cart %}
+          <li>
+            {{ item.bouquet_name }} — {{ item.price }} USD ×
+            <form method="post" action="/cart/update/{{ item.position_id }}" style="display:inline">
+              <input name="quantity" type="number" min="0" value="{{ item.quantity }}" style="width:4rem">
+              <button type="submit">Set</button>
+            </form>
+            = {{ (item.price * item.quantity)|round(2) }}
+            <form method="post" action="/cart/remove/{{ item.position_id }}" style="display:inline">
+              <input type="hidden" name="remove_all" value="0">
+              <button type="submit">Remove one</button>
+            </form>
+            <form method="post" action="/cart/remove/{{ item.position_id }}" style="display:inline">
+              <input type="hidden" name="remove_all" value="1">
+              <button type="submit">Remove all</button>
+            </form>
+          </li>
+        {% endfor %}
+      </ul>
+      <p>Total: {{ total|round(2) }} USD</p>
+      <form method="post" action="/cart/checkout">
+        <button type="submit">Checkout</button>
+      </form>
+    {% endif %}
+  </main>
+</body>
+</html>

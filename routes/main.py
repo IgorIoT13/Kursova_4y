@@ -82,6 +82,255 @@ def main_routes(app):
             return jsonify({'error': 'user not found'}), 404
         return render_template('profile.html', user=user)
 
+    # Cart operations (session-based)
+    def _get_cart():
+        return session.setdefault('cart', [])
+
+    @app.route('/cart')
+    def cart_view():
+        cart = _get_cart()
+        total = sum([item['price'] * item.get('quantity', 1) for item in cart])
+        return render_template('cart.html', cart=cart, total=total)
+
+    @app.route('/cart/add/<int:position_id>', methods=['POST'])
+    def cart_add(position_id: int):
+        # find position
+        pos = db.session.get(Position, position_id)
+        if not pos or (pos.quantity or 0) <= 0:
+            return redirect(url_for('shop'))
+        # requested quantity
+        try:
+            req_q = int(request.form.get('quantity', 1))
+        except Exception:
+            req_q = 1
+        qty = max(1, min(req_q, pos.quantity))
+        cart = _get_cart()
+        # find existing item
+        for it in cart:
+            if it['position_id'] == position_id:
+                it['quantity'] = min(it.get('quantity', 1) + qty, pos.quantity)
+                break
+        else:
+            cart.append({'position_id': position_id, 'bouquet_name': pos.bouquet.name, 'price': float(pos.price), 'quantity': qty})
+        session['cart'] = cart
+        return redirect(url_for('cart_view'))
+
+    @app.route('/cart/remove/<int:position_id>', methods=['POST'])
+    def cart_remove(position_id: int):
+        cart = _get_cart()
+        remove_all = request.form.get('remove_all', '0') in ('1', 'true', 'yes')
+        for it in list(cart):
+            if it['position_id'] == position_id:
+                if remove_all or it.get('quantity', 1) <= 1:
+                    cart.remove(it)
+                else:
+                    # optional qty param to remove specific amount
+                    try:
+                        dec = int(request.form.get('quantity', 1))
+                    except Exception:
+                        dec = 1
+                    it['quantity'] = max(0, it.get('quantity', 1) - dec)
+                    if it['quantity'] == 0:
+                        cart.remove(it)
+                break
+        session['cart'] = cart
+        return redirect(url_for('cart_view'))
+
+    @app.route('/cart/update/<int:position_id>', methods=['POST'])
+    def cart_update(position_id: int):
+        cart = _get_cart()
+        try:
+            new_q = int(request.form.get('quantity', 0))
+        except Exception:
+            new_q = 0
+        # clamp to stock
+        pos = db.session.get(Position, position_id)
+        if pos and new_q > (pos.quantity or 0):
+            new_q = pos.quantity or 0
+        for it in cart:
+            if it['position_id'] == position_id:
+                if new_q <= 0:
+                    cart.remove(it)
+                else:
+                    it['quantity'] = new_q
+                break
+        session['cart'] = cart
+        return redirect(url_for('cart_view'))
+
+    @app.route('/cart/checkout', methods=['POST'])
+    def cart_checkout():
+        # require login
+        user_id = session.get('user_id')
+        if not user_id:
+            return redirect(url_for('login'))
+        cart = _get_cart()
+        # basic implementation: create one order per cart item using first delivery (if any)
+        delivery = db.session.query(db.session.get.__self__.__class__).filter_by().first() if False else None
+        from services.order_service import OrderService
+        order_svc = OrderService(db.session)
+        created_orders = []
+        # pick a delivery if exists else None
+        delivery_obj = db.session.query(db.session.get.__self__.__class__).filter_by().first() if False else None
+        # fallback: try to get first Delivery model instance
+        try:
+            from models import Delivery as _DeliveryModel
+            delivery_obj = db.session.query(_DeliveryModel).first()
+        except Exception:
+            delivery_obj = None
+
+        for it in list(cart):
+            pos_id = it['position_id']
+            qty = it.get('quantity', 1)
+            delivery_id = delivery_obj.id if delivery_obj else None
+            order = order_svc.create(user_id=user_id, position_id=pos_id, delivery_id=delivery_id, quantity=qty, user_card_name='standard')
+            if order:
+                created_orders.append(order.id)
+        # clear cart
+        session['cart'] = []
+        return jsonify({'orders_created': created_orders})
+
+    # Create custom bouquet (for logged-in users)
+    @app.route('/create_bouquet', methods=['GET', 'POST'])
+    def create_bouquet():
+        user_id = session.get('user_id')
+        if not user_id:
+            return redirect(url_for('login'))
+        # provide flower/wrapping/type lists
+        flowers = db.session.query(db.session.get.__self__.__class__).filter_by().first() if False else None
+        try:
+            from models import Flower as _Flower, Wrapping as _Wrapping, BouquetType as _Type
+            flowers = db.session.query(_Flower).all()
+            wrappings = db.session.query(_Wrapping).all()
+            types = db.session.query(_Type).all()
+        except Exception:
+            flowers = wrappings = types = []
+
+        if request.method == 'GET':
+            return render_template('create_bouquet.html', flowers=flowers, wrappings=wrappings, types=types)
+
+        # POST: create bouquet and optional position
+        name = request.form.get('name')
+        flower_id = int(request.form.get('flower_id'))
+        wrapping_id = int(request.form.get('wrapping_id'))
+        type_id = int(request.form.get('type_id'))
+        flowers_count = int(request.form.get('flowers_count', 1))
+        price_raw = request.form.get('price')
+        quantity = int(request.form.get('quantity', 0))
+
+        from services.bouquet_service import BouquetService
+        from services.position_service import PositionService
+        bsvc = BouquetService(db.session)
+        psvc = PositionService(db.session)
+
+        from builders.general_bouquet import GeneralBouquet
+        builder = GeneralBouquet().set_name(name).set_flower(flower_id).set_wrapping(wrapping_id).set_type(type_id).set_flowers_count(flowers_count)
+        try:
+            bouquet = bsvc.create_from_builder(builder)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 400
+
+        if price_raw:
+            try:
+                price = float(price_raw)
+            except Exception:
+                price = None
+        else:
+            price = None
+
+        # for normal users: if they specified add_quantity, create a Position (if not existing) and add to cart
+        add_q = int(request.form.get('add_quantity', 0))
+        if add_q > 0:
+            # compute price and create a position for this bouquet
+            from models import Position as _PositionModel
+            psvc.dao.model = _PositionModel
+            # compute price from bouquet if not provided
+            listing_price = psvc.compute_price_from_bouquet(bouquet) if price is None else price
+            pos = psvc.create_from_bouquet(bouquet, price=listing_price, quantity=add_q)
+            # add to session cart
+            cart = _get_cart()
+            cart.append({'position_id': pos.id, 'bouquet_name': bouquet.name, 'price': float(pos.price), 'quantity': add_q})
+            session['cart'] = cart
+
+        return redirect(url_for('cart_view'))
+
+    @app.route('/admin/bouquets/create_position/<int:bouquet_id>', methods=['POST'])
+    def admin_create_position(bouquet_id: int):
+        user_id = session.get('user_id')
+        if not user_id or not _is_admin(user_id):
+            return jsonify({'error': 'forbidden'}), 403
+        try:
+            price = float(request.form.get('price'))
+        except Exception:
+            price = None
+        try:
+            quantity = int(request.form.get('quantity', 0))
+        except Exception:
+            quantity = 0
+        from services.position_service import PositionService
+        psvc = PositionService(db.session)
+        from models import Position as _Position
+        psvc.dao.model = _Position
+        from models import Bouquet as _Bouquet
+        bouquet = db.session.get(_Bouquet, bouquet_id)
+        if not bouquet:
+            return jsonify({'error': 'bouquet not found'}), 404
+        # compute listing price if not provided
+        listing_price = price if price is not None else psvc.compute_price_from_bouquet(bouquet)
+        psvc.create_from_bouquet(bouquet, price=listing_price, quantity=quantity)
+        return redirect(url_for('admin_bouquets'))
+
+    # admin helper
+    def _is_admin(user_id: int) -> bool:
+        try:
+            user = db.session.get(User, user_id)
+            return user and getattr(user.user_type, 'is_admin', False)
+        except Exception:
+            return False
+
+    @app.route('/admin/bouquets')
+    def admin_bouquets():
+        user_id = session.get('user_id')
+        if not user_id or not _is_admin(user_id):
+            return jsonify({'error': 'forbidden'}), 403
+        from models import Bouquet as _Bouquet
+        bouquets = db.session.query(_Bouquet).all()
+        return render_template('admin_bouquets.html', bouquets=bouquets)
+
+    @app.route('/admin/bouquets/edit/<int:bouquet_id>', methods=['GET', 'POST'])
+    def admin_edit_bouquet(bouquet_id: int):
+        user_id = session.get('user_id')
+        if not user_id or not _is_admin(user_id):
+            return jsonify({'error': 'forbidden'}), 403
+        from models import Bouquet as _Bouquet, Position as _Position
+        bouquet = db.session.get(_Bouquet, bouquet_id)
+        if not bouquet:
+            return jsonify({'error': 'not found'}), 404
+        positions = db.session.query(_Position).filter_by(bouquet_id=bouquet_id).all()
+        if request.method == 'GET':
+            return render_template('admin_edit_bouquet.html', bouquet=bouquet, positions=positions)
+        # POST: update name
+        name = request.form.get('name')
+        from services.bouquet_service import BouquetService
+        bsvc = BouquetService(db.session)
+        bsvc.update(bouquet_id, name=name)
+        return redirect(url_for('admin_bouquets'))
+
+    @app.route('/admin/positions/update/<int:position_id>', methods=['POST'])
+    def admin_update_position(position_id: int):
+        user_id = session.get('user_id')
+        if not user_id or not _is_admin(user_id):
+            return jsonify({'error': 'forbidden'}), 403
+        try:
+            new_q = int(request.form.get('quantity', 0))
+        except Exception:
+            new_q = 0
+        from services.position_service import PositionService
+        psvc = PositionService(db.session)
+        from models import Position as _Position
+        psvc.dao.model = _Position
+        psvc.set_quantity(position_id, new_q)
+        return redirect(url_for('admin_edit_bouquet', bouquet_id=db.session.get(_Position, position_id).bouquet_id))
+
     @app.route('/bouquet/<int:bouquet_id>')
     def bouquet_detail(bouquet_id: int):
         try:
