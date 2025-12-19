@@ -196,8 +196,11 @@ def main_routes(app):
             order = order_svc.create(user_id=user_id, position_id=pos_id, delivery_id=delivery_id, quantity=qty, user_card_name='standard')
             if order:
                 created_orders.append(order.id)
-        # clear cart
+        # clear cart and redirect user to their profile page
         session['cart'] = []
+        if created_orders:
+            return redirect(url_for('profile', user_id=user_id))
+        # if nothing created, return JSON to indicate no orders
         return jsonify({'orders_created': created_orders})
 
     # Create custom bouquet (for logged-in users)
