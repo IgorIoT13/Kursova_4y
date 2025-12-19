@@ -161,6 +161,24 @@ def main_routes(app):
             notifications = []
         return render_template('profile.html', user=user, orders=orders, subscriptions=subscriptions, notifications=notifications)
 
+    @app.route('/profile/notifications/delete/<int:notification_id>', methods=['POST'])
+    def profile_delete_notification(notification_id: int):
+        user_id = session.get('user_id')
+        if not user_id:
+            return redirect(url_for('login'))
+        from services.notification_service import NotificationService
+        svc = NotificationService(db.session)
+        # ensure ownership
+        try:
+            n = db.session.get(__import__('models').models.Notification, notification_id)
+            if not n or n.user_id != user_id:
+                return jsonify({'error': 'forbidden'}), 403
+            svc.dao.model = __import__('models').models.Notification
+            svc.dao.delete(notification_id)
+        except Exception:
+            pass
+        return redirect(url_for('profile', user_id=user_id))
+
     @app.route('/subscribe/<int:bouquet_id>', methods=['POST'])
     def subscribe_bouquet(bouquet_id: int):
         user_id = session.get('user_id')

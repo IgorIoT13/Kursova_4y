@@ -58,10 +58,13 @@
     <hr>
     <h3>Notifications</h3>
     <ul id="notifications-list">
-      {% if notifications and notifications|length > 0 %}
+        {% if notifications and notifications|length > 0 %}
         {% for n in notifications %}
-          <li>
+          <li data-id="{{ n.id }}">
             {{ n.message }} — {{ n.created_at }} {% if not n.read %}<strong>(new)</strong>{% endif %}
+            <form method="post" action="/profile/notifications/delete/{{ n.id }}" style="display:inline;margin-left:0.5rem">
+              <button type="submit" style="background:#c33;color:white;border:none;padding:0.2rem 0.4rem">Delete</button>
+            </form>
           </li>
         {% endfor %}
       {% else %}
@@ -92,6 +95,28 @@
           es.close();
         };
       }
+      // polling fallback: periodically fetch persisted notifications and merge into list
+      (function pollNotifications(){
+        try{
+          const uid = {{ user.id | tojson }};
+          fetch('/debug/notifications/' + uid).then(r=>r.json()).then(data=>{
+            const ul = document.getElementById('notifications-list');
+            if(!ul) return;
+            // data is list newest-first; prepend any not already present
+            const existing = new Set(Array.from(ul.querySelectorAll('li')).map(li=>li.getAttribute('data-id')));
+            data.forEach(n=>{
+              if(!existing.has(String(n.id))){
+                const li = document.createElement('li');
+                li.setAttribute('data-id', n.id);
+                li.textContent = n.message + ' — ' + n.created_at + (n.read? '' : ' (new)');
+                if(ul.firstChild) ul.insertBefore(li, ul.firstChild);
+                else ul.appendChild(li);
+              }
+            });
+          }).catch(()=>{});
+        }catch(e){}
+        setTimeout(pollNotifications, 5000);
+      })();
     </script>
   </main>
 </body>

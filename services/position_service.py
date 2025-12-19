@@ -40,7 +40,8 @@ class PositionService:
         try:
             event = payload.get('event')
             logging.getLogger('position_service').debug('Notify event=%s for position_id=%s', event, position_id)
-            if event in ('stock_available', 'created_with_stock', 'stock_added'):
+            # notify subscribers on various stock-related events, including any quantity change
+            if event in ('stock_available', 'created_with_stock', 'stock_added', 'quantity_changed'):
                 # resolve bouquet id from position
                 from models import Position as _Position
                 pos = self.session.get(_Position, position_id)
@@ -57,10 +58,15 @@ class PositionService:
                     for s in subs:
                         try:
                             # craft message depending on event
+                            # craft message depending on event
                             if event == 'created_with_stock':
                                 msg = f"Bouquet '{getattr(pos.bouquet, 'name', str(bouquet_id))}' was listed with stock ({payload.get('quantity')})."
                             elif event == 'stock_added':
                                 msg = f"Bouquet '{getattr(pos.bouquet, 'name', str(bouquet_id))}' had stock added (+{payload.get('quantity')})."
+                            elif event == 'quantity_changed':
+                                prev = payload.get('prev')
+                                new = payload.get('new')
+                                msg = f"Bouquet '{getattr(pos.bouquet, 'name', str(bouquet_id))}' quantity changed from {prev} to {new}."
                             else:
                                 msg = f"Bouquet '{getattr(pos.bouquet, 'name', str(bouquet_id))}' is now in stock ({payload.get('quantity')})."
                             notif_svc.create(user_id=s.user_id, bouquet_id=bouquet_id, message=msg)

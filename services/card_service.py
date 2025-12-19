@@ -53,10 +53,10 @@ class CardService:
     def get_strategy(cls, name: str) -> CardStrategy:
         try:
             print(name)
-            n = (name or 'standard')
-            if not isinstance(n, str):
-                n = str(n)
-            key = n.lower()
+            strategy_name = (name or 'standard')
+            if not isinstance(strategy_name, str):
+                strategy_name = str(strategy_name)
+            key = strategy_name.lower()
         except Exception:
             key = 'standard'
         return cls._map.get(key, StandardCard())
