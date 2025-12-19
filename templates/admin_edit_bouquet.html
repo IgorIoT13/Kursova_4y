@@ -12,6 +12,10 @@
       <label>Name: <input name="name" value="{{ bouquet.name }}"></label><br>
       <button type="submit">Save</button>
     </form>
+    <!-- Admin delete bouquet -->
+    <form method="post" action="/admin/bouquets/delete/{{ bouquet.id }}" onsubmit="return confirm('Delete this bouquet and its positions?');">
+      <button type="submit" style="background:#c33;color:white;border:none;padding:0.5rem 1rem;margin-top:0.5rem">Delete Bouquet</button>
+    </form>
     <h2>Positions</h2>
     <h3>Create new position</h3>
     <form method="post" action="/admin/bouquets/create_position/{{ bouquet.id }}">

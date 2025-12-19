@@ -12,6 +12,9 @@
       {% for b in bouquets %}
         <li>
           {{ b.name }} — <a href="/admin/bouquets/edit/{{ b.id }}">Edit</a>
+          <form method="post" action="/admin/bouquets/delete/{{ b.id }}" style="display:inline;margin-left:0.5rem" onsubmit="return confirm('Delete this bouquet and its positions?');">
+            <button type="submit" style="background:#c33;color:white;border:none;padding:0.2rem 0.5rem">Delete</button>
+          </form>
           <form method="post" action="/admin/bouquets/create_position/{{ b.id }}" style="display:inline">
             <input name="price" placeholder="price" style="width:5rem">
             <input name="quantity" type="number" min="0" value="0" style="width:4rem">

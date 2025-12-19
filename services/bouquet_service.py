@@ -39,5 +39,22 @@ class BouquetService:
         return self.dao.update(bouquet_id, **fields)
 
     def delete(self, bouquet_id: int):
+        # Ensure model bound
         self.dao.model = Bouquet
+        # remove dependent positions first to avoid FK integrity issues
+        try:
+            from models import Position as _Position
+            # delete positions that reference this bouquet in a transaction
+            # use the session directly for efficient bulk delete
+            self.session.query(_Position).filter(_Position.bouquet_id == bouquet_id).delete(synchronize_session=False)
+            # commit deletion of positions
+            self.session.commit()
+        except Exception:
+            # if something goes wrong during cleanup, rollback and re-raise
+            try:
+                self.session.rollback()
+            except Exception:
+                pass
+            raise
+        # now delete bouquet
         return self.dao.delete(bouquet_id)

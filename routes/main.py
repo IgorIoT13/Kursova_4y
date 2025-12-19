@@ -85,7 +85,13 @@ def main_routes(app):
         user = db.session.get(User, user_id)
         if not user:
             return jsonify({'error': 'user not found'}), 404
-        return render_template('profile.html', user=user)
+        # load user's orders explicitly to pass into template
+        try:
+            from models import Order as _Order
+            orders = db.session.query(_Order).filter_by(user_id=user_id).all()
+        except Exception:
+            orders = []
+        return render_template('profile.html', user=user, orders=orders)
 
     # Cart operations (session-based)
     def _get_cart():
@@ -298,6 +304,20 @@ def main_routes(app):
         bsvc.update(bouquet_id, name=name)
         return redirect(url_for('admin_bouquets'))
 
+    @app.route('/admin/bouquets/delete/<int:bouquet_id>', methods=['POST'])
+    def admin_delete_bouquet(bouquet_id: int):
+        user_id = session.get('user_id')
+        if not user_id or not _is_admin(user_id):
+            return jsonify({'error': 'forbidden'}), 403
+        from services.bouquet_service import BouquetService
+        bsvc = BouquetService(db.session)
+        try:
+            bsvc.delete(bouquet_id)
+        except Exception as e:
+            # return a simple error JSON for now
+            return jsonify({'error': str(e)}), 400
+        return redirect(url_for('admin_bouquets'))
+
     @app.route('/admin/positions/update/<int:position_id>', methods=['POST'])
     def admin_update_position(position_id: int):
         user_id = session.get('user_id')
@@ -335,3 +355,26 @@ def main_routes(app):
         except Exception:
             is_admin_user = False
         return render_template('bouquet.html', bouquet=bouquet, position=position, is_admin=is_admin_user)
+
+    @app.route('/profile/orders/cancel/<int:order_id>', methods=['POST'])
+    def profile_cancel_order(order_id: int):
+        # require login
+        user_id = session.get('user_id')
+        if not user_id:
+            return redirect(url_for('login'))
+        # fetch order and check ownership
+        from models import Order as _Order
+        order = db.session.get(_Order, order_id)
+        if not order:
+            return jsonify({'error': 'order not found'}), 404
+        # allow owner or admin
+        if order.user_id != user_id and not _is_admin(user_id):
+            return jsonify({'error': 'forbidden'}), 403
+        # perform deletion via service (restores position stock)
+        from services.order_service import OrderService
+        svc = OrderService(db.session)
+        try:
+            svc.delete(order_id)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 400
+        return redirect(url_for('profile', user_id=user_id))

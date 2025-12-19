@@ -25,6 +25,9 @@
     {% if is_admin %}
       <p><a href="/create_bouquet">Create bouquet in shop (admin)</a> | <a href="/admin/bouquets">Manage Bouquets</a></p>
     {% endif %}
+    {% if session.get('user_id') %}
+      <p><a href="/create_bouquet">Create your bouquet</a></p>
+    {% endif %}
     <ul>
       {% for pos in positions %}
       <li>
