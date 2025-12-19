@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Flower Shop - Shop</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1>Shop</h1>
+    <nav>
+      <a href="/">Home</a>
+      {% if session.get('user_id') %}
+        | <a href="/profile/{{ session.get('user_id') }}">My Account</a>
+        | <a href="/logout">Logout</a>
+      {% else %}
+        | <a href="/login">Login</a>
+      {% endif %}
+    </nav>
+  </header>
+  <main>
+    <h2>Available Bouquets</h2>
+    <ul>
+      {% for pos in positions %}
+      <li><a href="/bouquet/{{ pos.bouquet.id }}">{{ pos.bouquet.name }}</a> — {{ pos.price }} USD ({{ pos.quantity }} in stock)</li>
+      {% else %}
+      <li>No positions available</li>
+      {% endfor %}
+    </ul>
+  </main>
+  <footer>
+    <small>Demo shop</small>
+  </footer>
+</body>
+</html>

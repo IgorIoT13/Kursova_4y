@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{{ bouquet.name }}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1>{{ bouquet.name }}</h1>
+    <nav><a href="/">Home</a> | <a href="/shop">Shop</a></nav>
+  </header>
+  <main>
+    <p>Flower: {{ bouquet.flower.name }} ({{ bouquet.flowers_count }}x)</p>
+    <p>Wrapping: {{ bouquet.wrapping.name }}</p>
+    <p>Price: {{ position.price if position else 'N/A' }} USD</p>
+    <p>Stock: {{ position.quantity if position else 0 }}</p>
+  </main>
+  <footer>
+    <small>Demo shop</small>
+  </footer>
+</body>
+</html>
