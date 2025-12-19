@@ -57,17 +57,42 @@
 
     <hr>
     <h3>Notifications</h3>
-    {% if notifications and notifications|length > 0 %}
-      <ul>
+    <ul id="notifications-list">
+      {% if notifications and notifications|length > 0 %}
         {% for n in notifications %}
           <li>
             {{ n.message }} — {{ n.created_at }} {% if not n.read %}<strong>(new)</strong>{% endif %}
           </li>
         {% endfor %}
-      </ul>
-    {% else %}
-      <p>No notifications.</p>
-    {% endif %}
+      {% else %}
+        <!-- empty placeholder; JS will append live notifications here -->
+      {% endif %}
+    </ul>
+    <script>
+      // try to open an EventSource to receive live notifications
+      if (!!window.EventSource) {
+        const es = new EventSource('/events/notifications');
+    es.onmessage = function(e) {
+          try {
+            const ul = document.getElementById('notifications-list');
+            if (!ul) return;
+            const li = document.createElement('li');
+            li.textContent = e.data + ' (just now)';
+            // prepend
+            if (ul.firstChild) ul.insertBefore(li, ul.firstChild);
+            else ul.appendChild(li);
+      // also show a browser alert for immediate visibility
+      try { alert('Notification: ' + e.data); } catch (_) {}
+          } catch (err) {
+            // ignore
+          }
+        };
+        es.onerror = function() {
+          // silent fallback
+          es.close();
+        };
+      }
+    </script>
   </main>
 </body>
 </html>

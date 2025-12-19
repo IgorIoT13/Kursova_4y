@@ -51,7 +51,15 @@ class CardService:
 
     @classmethod
     def get_strategy(cls, name: str) -> CardStrategy:
-        return cls._map.get(name.lower(), StandardCard())
+        try:
+            print(name)
+            n = (name or 'standard')
+            if not isinstance(n, str):
+                n = str(n)
+            key = n.lower()
+        except Exception:
+            key = 'standard'
+        return cls._map.get(key, StandardCard())
 
     @staticmethod
     def pricing_note() -> None:

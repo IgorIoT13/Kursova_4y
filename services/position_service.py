@@ -1,6 +1,7 @@
 from typing import Optional
 from dao.position_dao import PositionDAO
 from services.observer import ProductObserver
+import logging
 
 
 class PositionService:
@@ -38,26 +39,44 @@ class PositionService:
         # if stock became available, persist notifications for subscribers
         try:
             event = payload.get('event')
-            if event == 'stock_available':
+            logging.getLogger('position_service').debug('Notify event=%s for position_id=%s', event, position_id)
+            if event in ('stock_available', 'created_with_stock', 'stock_added'):
                 # resolve bouquet id from position
                 from models import Position as _Position
                 pos = self.session.get(_Position, position_id)
                 if pos:
                     bouquet_id = pos.bouquet_id
+                    logging.getLogger('position_service').debug('Resolved bouquet_id=%s for position_id=%s', bouquet_id, position_id)
                     # list subscriptions and create notifications
                     from services.subscription_service import SubscriptionService
                     from services.notification_service import NotificationService
                     sub_svc = SubscriptionService(self.session)
                     notif_svc = NotificationService(self.session)
                     subs = sub_svc.list_for_bouquet(bouquet_id)
+                    logging.getLogger('position_service').debug('Found %s subscriptions for bouquet_id=%s', len(subs), bouquet_id)
                     for s in subs:
                         try:
-                            msg = f"Bouquet '{getattr(pos.bouquet, 'name', str(bouquet_id))}' is now in stock ({payload.get('quantity')})."
+                            # craft message depending on event
+                            if event == 'created_with_stock':
+                                msg = f"Bouquet '{getattr(pos.bouquet, 'name', str(bouquet_id))}' was listed with stock ({payload.get('quantity')})."
+                            elif event == 'stock_added':
+                                msg = f"Bouquet '{getattr(pos.bouquet, 'name', str(bouquet_id))}' had stock added (+{payload.get('quantity')})."
+                            else:
+                                msg = f"Bouquet '{getattr(pos.bouquet, 'name', str(bouquet_id))}' is now in stock ({payload.get('quantity')})."
                             notif_svc.create(user_id=s.user_id, bouquet_id=bouquet_id, message=msg)
-                        except Exception:
+                        except Exception as e:
+                            logging.getLogger('position_service').exception('Failed creating notification for user=%s bouquet=%s: %s', s.user_id, bouquet_id, e)
                             # ignore single notification failures
                             pass
+                        # try to publish realtime message for immediate delivery
+                        try:
+                            from services.realtime import broadcaster
+                            broadcaster.publish(s.user_id, msg)
+                        except Exception as e:
+                            logging.getLogger('position_service').exception('Failed realtime publish for user=%s: %s', s.user_id, e)
+                            pass
         except Exception:
+            logging.getLogger('position_service').exception('Error while notifying subscribers for position %s', position_id)
             # don't let notification failures break the main flow
             pass
 

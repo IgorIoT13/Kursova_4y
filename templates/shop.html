@@ -28,6 +28,33 @@
     {% if session.get('user_id') %}
       <p><a href="/create_bouquet">Create your bouquet</a></p>
     {% endif %}
+    <form method="get" action="/shop" style="margin-bottom:1rem">
+      <input type="search" name="q" placeholder="search bouquets" value="{{ request.args.get('q', '') }}">
+      <select name="flower_id">
+        <option value="">-- any flower --</option>
+        {% for f in flowers %}
+          <option value="{{ f.id }}" {% if request.args.get('flower_id') == (f.id|string) %}selected{% endif %}>{{ f.name }}</option>
+        {% endfor %}
+      </select>
+      <select name="wrapping_id">
+        <option value="">-- any wrapping --</option>
+        {% for w in wrappings %}
+          <option value="{{ w.id }}" {% if request.args.get('wrapping_id') == (w.id|string) %}selected{% endif %}>{{ w.name }}</option>
+        {% endfor %}
+      </select>
+      <select name="type_id">
+        <option value="">-- any type --</option>
+        {% for t in types %}
+          <option value="{{ t.id }}" {% if request.args.get('type_id') == (t.id|string) %}selected{% endif %}>{{ t.type }}</option>
+        {% endfor %}
+      </select>
+      <label>Min $<input name="min_price" type="number" step="0.01" value="{{ request.args.get('min_price','') }}" style="width:6rem"></label>
+      <label>Max $<input name="max_price" type="number" step="0.01" value="{{ request.args.get('max_price','') }}" style="width:6rem"></label>
+      <label><input type="checkbox" name="in_stock" value="1" {% if request.args.get('in_stock') %}checked{% endif %}> In stock only</label>
+      <button type="submit">Filter</button>
+      <a href="/shop">Reset</a>
+    </form>
+
     <ul>
       {% for pos in positions %}
       <li>
