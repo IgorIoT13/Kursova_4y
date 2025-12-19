@@ -34,7 +34,12 @@ def main_routes(app):
     def shop():
         # list available positions and render shop page
         positions = db.session.query(Position).all()
-        return render_template('shop.html', positions=positions)
+        user_id = session.get('user_id')
+        try:
+            is_admin_user = _is_admin(user_id) if user_id else False
+        except Exception:
+            is_admin_user = False
+        return render_template('shop.html', positions=positions, is_admin=is_admin_user)
 
     @app.route('/login', methods=['GET', 'POST'])
     def login():
@@ -205,8 +210,9 @@ def main_routes(app):
         except Exception:
             flowers = wrappings = types = []
 
+        is_admin_user = _is_admin(user_id)
         if request.method == 'GET':
-            return render_template('create_bouquet.html', flowers=flowers, wrappings=wrappings, types=types)
+            return render_template('create_bouquet.html', flowers=flowers, wrappings=wrappings, types=types, is_admin=is_admin_user)
 
         # POST: create bouquet and optional position
         name = request.form.get('name')
@@ -229,55 +235,32 @@ def main_routes(app):
         except Exception as e:
             return jsonify({'error': str(e)}), 400
 
-        if price_raw:
+        # Admins may set explicit price; regular users cannot set price and their created position
+        # will use computed price and be automatically added to their cart.
+        price = None
+        if is_admin_user and price_raw:
             try:
                 price = float(price_raw)
             except Exception:
                 price = None
-        else:
-            price = None
 
-        # for normal users: if they specified add_quantity, create a Position (if not existing) and add to cart
-        add_q = int(request.form.get('add_quantity', 0))
-        if add_q > 0:
-            # compute price and create a position for this bouquet
+        # create position if quantity requested
+        if quantity > 0:
             from models import Position as _PositionModel
             psvc.dao.model = _PositionModel
-            # compute price from bouquet if not provided
-            listing_price = psvc.compute_price_from_bouquet(bouquet) if price is None else price
-            pos = psvc.create_from_bouquet(bouquet, price=listing_price, quantity=add_q)
-            # add to session cart
-            cart = _get_cart()
-            cart.append({'position_id': pos.id, 'bouquet_name': bouquet.name, 'price': float(pos.price), 'quantity': add_q})
-            session['cart'] = cart
+            # if no explicit price, compute from bouquet
+            if price is None:
+                price = psvc.compute_price_from_bouquet(bouquet)
+            created_pos = psvc.create_from_bouquet(bouquet, price=price, quantity=quantity)
+            # if user is not admin, add created position to user's cart immediately
+            if not is_admin_user and created_pos is not None:
+                cart = session.setdefault('cart', [])
+                cart.append({'position_id': created_pos.id, 'bouquet_name': bouquet.name, 'price': float(created_pos.price), 'quantity': quantity})
+                session['cart'] = cart
+                return redirect(url_for('cart_view'))
 
-        return redirect(url_for('cart_view'))
-
-    @app.route('/admin/bouquets/create_position/<int:bouquet_id>', methods=['POST'])
-    def admin_create_position(bouquet_id: int):
-        user_id = session.get('user_id')
-        if not user_id or not _is_admin(user_id):
-            return jsonify({'error': 'forbidden'}), 403
-        try:
-            price = float(request.form.get('price'))
-        except Exception:
-            price = None
-        try:
-            quantity = int(request.form.get('quantity', 0))
-        except Exception:
-            quantity = 0
-        from services.position_service import PositionService
-        psvc = PositionService(db.session)
-        from models import Position as _Position
-        psvc.dao.model = _Position
-        from models import Bouquet as _Bouquet
-        bouquet = db.session.get(_Bouquet, bouquet_id)
-        if not bouquet:
-            return jsonify({'error': 'bouquet not found'}), 404
-        # compute listing price if not provided
-        listing_price = price if price is not None else psvc.compute_price_from_bouquet(bouquet)
-        psvc.create_from_bouquet(bouquet, price=listing_price, quantity=quantity)
-        return redirect(url_for('admin_bouquets'))
+        # for admins or when no immediate cart addition, redirect to shop
+        return redirect(url_for('shop'))
 
     # admin helper
     def _is_admin(user_id: int) -> bool:
@@ -345,4 +328,10 @@ def main_routes(app):
             position = None
         if not bouquet:
             return jsonify({'error': 'bouquet not found'}), 404
-        return render_template('bouquet.html', bouquet=bouquet, position=position)
+        # detect admin for current session
+        user_id = session.get('user_id')
+        try:
+            is_admin_user = _is_admin(user_id) if user_id else False
+        except Exception:
+            is_admin_user = False
+        return render_template('bouquet.html', bouquet=bouquet, position=position, is_admin=is_admin_user)

@@ -22,10 +22,16 @@
   </header>
   <main>
     <h2>Available Bouquets</h2>
+    {% if is_admin %}
+      <p><a href="/create_bouquet">Create bouquet in shop (admin)</a> | <a href="/admin/bouquets">Manage Bouquets</a></p>
+    {% endif %}
     <ul>
       {% for pos in positions %}
       <li>
         <a href="/bouquet/{{ pos.bouquet.id }}">{{ pos.bouquet.name }}</a> — {{ pos.price }} USD ({{ pos.quantity }} in stock)
+        {% if is_admin %}
+          | <a href="/admin/bouquets/edit/{{ pos.bouquet.id }}">Edit</a>
+        {% endif %}
         {% if pos.quantity > 0 %}
         <form method="post" action="/cart/add/{{ pos.id }}" style="display:inline">
           <label>Qty: <input name="quantity" type="number" min="1" max="{{ pos.quantity }}" value="1" style="width:4rem"></label>

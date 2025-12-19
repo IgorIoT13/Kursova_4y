@@ -22,6 +22,13 @@
       <button type="submit">Add to cart</button>
     </form>
     {% endif %}
+    {% if is_admin %}
+    <h3>Admin: Edit stock</h3>
+    <form method="post" action="/admin/positions/update/{{ position.id }}">
+      <label>Stock: <input name="quantity" type="number" min="0" value="{{ position.quantity if position else 0 }}" style="width:5rem"></label>
+      <button type="submit">Set</button>
+    </form>
+    {% endif %}
   </main>
   <footer>
     <small>Demo shop</small>
