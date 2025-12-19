@@ -27,12 +27,39 @@ class PositionService:
             self._observers.remove(obs)
 
     def _notify(self, position_id: int, payload: dict):
+        # notify attached observers (in-memory)
         for o in list(self._observers):
             try:
                 o.notify(position_id, payload)
             except Exception:
                 # swallow observer errors for now
                 pass
+
+        # if stock became available, persist notifications for subscribers
+        try:
+            event = payload.get('event')
+            if event == 'stock_available':
+                # resolve bouquet id from position
+                from models import Position as _Position
+                pos = self.session.get(_Position, position_id)
+                if pos:
+                    bouquet_id = pos.bouquet_id
+                    # list subscriptions and create notifications
+                    from services.subscription_service import SubscriptionService
+                    from services.notification_service import NotificationService
+                    sub_svc = SubscriptionService(self.session)
+                    notif_svc = NotificationService(self.session)
+                    subs = sub_svc.list_for_bouquet(bouquet_id)
+                    for s in subs:
+                        try:
+                            msg = f"Bouquet '{getattr(pos.bouquet, 'name', str(bouquet_id))}' is now in stock ({payload.get('quantity')})."
+                            notif_svc.create(user_id=s.user_id, bouquet_id=bouquet_id, message=msg)
+                        except Exception:
+                            # ignore single notification failures
+                            pass
+        except Exception:
+            # don't let notification failures break the main flow
+            pass
 
     def create_from_bouquet(self, bouquet, price: Optional[float] = None, quantity: int = 0):
         """Create a Position for a bouquet; if price omitted compute from bouquet."""

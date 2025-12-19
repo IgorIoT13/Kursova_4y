@@ -22,6 +22,15 @@
       <button type="submit">Add to cart</button>
     </form>
     {% endif %}
+    {% if not is_admin and (not position or position.quantity == 0) and session.get('user_id') %}
+      <!-- subscription controls for out-of-stock bouquet -->
+      <form method="post" action="/subscribe/{{ bouquet.id }}" style="display:inline">
+        <button type="submit">Subscribe for availability</button>
+      </form>
+      <form method="post" action="/unsubscribe/{{ bouquet.id }}" style="display:inline;margin-left:0.5rem">
+        <button type="submit">Unsubscribe</button>
+      </form>
+    {% endif %}
     {% if is_admin %}
     <h3>Admin: Edit stock</h3>
     <form method="post" action="/admin/positions/update/{{ position.id }}">

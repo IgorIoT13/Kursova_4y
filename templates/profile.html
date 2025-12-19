@@ -39,6 +39,35 @@
     {% else %}
       <p>No orders yet.</p>
     {% endif %}
+    <hr>
+    <h3>My Subscriptions</h3>
+    {% if subscriptions and subscriptions|length > 0 %}
+      <ul>
+        {% for s in subscriptions %}
+          <li>Bouquet #{{ s.bouquet_id }} (subscribed at {{ s.created_at }})
+            <form method="post" action="/unsubscribe/{{ s.bouquet_id }}" style="display:inline;margin-left:0.5rem">
+              <button type="submit">Unsubscribe</button>
+            </form>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>No subscriptions.</p>
+    {% endif %}
+
+    <hr>
+    <h3>Notifications</h3>
+    {% if notifications and notifications|length > 0 %}
+      <ul>
+        {% for n in notifications %}
+          <li>
+            {{ n.message }} — {{ n.created_at }} {% if not n.read %}<strong>(new)</strong>{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>No notifications.</p>
+    {% endif %}
   </main>
 </body>
 </html>

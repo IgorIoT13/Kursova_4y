@@ -91,7 +91,44 @@ def main_routes(app):
             orders = db.session.query(_Order).filter_by(user_id=user_id).all()
         except Exception:
             orders = []
-        return render_template('profile.html', user=user, orders=orders)
+        # also load subscriptions and notifications for convenience
+        try:
+            from services.subscription_service import SubscriptionService
+            from services.notification_service import NotificationService
+            subsvc = SubscriptionService(db.session)
+            notsvc = NotificationService(db.session)
+            subscriptions = subsvc.list_for_user(user_id)
+            notifications = notsvc.list_for_user(user_id)
+        except Exception:
+            subscriptions = []
+            notifications = []
+        return render_template('profile.html', user=user, orders=orders, subscriptions=subscriptions, notifications=notifications)
+
+    @app.route('/subscribe/<int:bouquet_id>', methods=['POST'])
+    def subscribe_bouquet(bouquet_id: int):
+        user_id = session.get('user_id')
+        if not user_id:
+            return redirect(url_for('login'))
+        from services.subscription_service import SubscriptionService
+        svc = SubscriptionService(db.session)
+        try:
+            svc.subscribe(user_id=user_id, bouquet_id=bouquet_id)
+        except Exception:
+            pass
+        return redirect(url_for('bouquet_detail', bouquet_id=bouquet_id))
+
+    @app.route('/unsubscribe/<int:bouquet_id>', methods=['POST'])
+    def unsubscribe_bouquet(bouquet_id: int):
+        user_id = session.get('user_id')
+        if not user_id:
+            return redirect(url_for('login'))
+        from services.subscription_service import SubscriptionService
+        svc = SubscriptionService(db.session)
+        try:
+            svc.unsubscribe(user_id=user_id, bouquet_id=bouquet_id)
+        except Exception:
+            pass
+        return redirect(url_for('bouquet_detail', bouquet_id=bouquet_id))
 
     # Cart operations (session-based)
     def _get_cart():

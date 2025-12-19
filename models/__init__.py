@@ -13,6 +13,8 @@ from models.user_type import init_user_type_model
 from models.user import init_user_model
 from models.delivery import init_delivery_model
 from models.order import init_order_model
+from models.subscription import init_subscription_model
+from models.notification import init_notification_model
 
 # Initialize models after db is defined
 Flower = init_flower_model(db)
@@ -24,5 +26,7 @@ UserType = init_user_type_model(db)
 User = init_user_model(db, UserType)
 Delivery = init_delivery_model(db)
 Order = init_order_model(db, User, Position, Delivery)
+Subscription = init_subscription_model(db, User, Bouquet)
+Notification = init_notification_model(db, User, Bouquet)
 
-__all__ = ['db', 'Flower', 'Wrapping', 'BouquetType', 'Bouquet', 'Position', 'UserType', 'User', 'Delivery', 'Order']
+__all__ = ['db', 'Flower', 'Wrapping', 'BouquetType', 'Bouquet', 'Position', 'UserType', 'User', 'Delivery', 'Order', 'Subscription', 'Notification']
