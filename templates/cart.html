@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Cart</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header><h1>Cart</h1><nav><a href="/">Home</a> | <a href="/shop">Shop</a></nav></header>
+  <main>
+    {% if not cart or cart|length == 0 %}
+      <p>Your cart is empty.</p>
+    {% else %}
+      <ul>
+        {% for item in cart %}
+          <li>
+            {{ item.bouquet_name }} —
+            {% if card_name and card_name != 'standard' %}
+              <span title="original">{{ item.original_price }} USD</span>
+              &rarr;
+              <strong>{{ item.discounted_price }} USD</strong>
+              ×
+            {% else %}
+              {{ item.price }} USD ×
+            {% endif %}
+            <form method="post" action="/cart/update/{{ item.position_id }}" style="display:inline">
+              <input name="quantity" type="number" min="0" value="{{ item.quantity }}" style="width:4rem">
+              <button type="submit">Set</button>
+            </form>
+            = {{ (item.line_total|default(0))|round(2) }}
+            <form method="post" action="/cart/remove/{{ item.position_id }}" style="display:inline">
+              <input type="hidden" name="remove_all" value="0">
+              <button type="submit">Remove one</button>
+            </form>
+            <form method="post" action="/cart/remove/{{ item.position_id }}" style="display:inline">
+              <input type="hidden" name="remove_all" value="1">
+              <button type="submit">Remove all</button>
+            </form>
+          </li>
+        {% endfor %}
+      </ul>
+      <p>Items total: {{ total|round(2) }} USD</p>
+      <p>Delivery:
+        {% if deliveries and deliveries|length > 0 %}
+          <form method="get" action="/cart" style="display:inline">
+            <select name="delivery_id" onchange="this.form.submit()">
+              {% for d in deliveries %}
+                <option value="{{ d.id }}" {% if selected_delivery_id and (selected_delivery_id|string) == (d.id|string) %}selected{% endif %}>{{ d.method }} — {{ d.price }} USD</option>
+              {% endfor %}
+            </select>
+            <noscript><button type="submit">Apply</button></noscript>
+          </form>
+          = {{ (delivery_cost|default(0))|round(2) }} USD
+        {% else %}
+          Not available
+        {% endif %}
+      </p>
+      <p><strong>Grand total: {{ (grand_total|default(total))|round(2) }} USD</strong></p>
+      <form method="post" action="/cart/checkout">
+        <input type="hidden" name="delivery_id" value="{{ selected_delivery_id or '' }}">
+        <button type="submit">Checkout</button>
+      </form>
+    {% endif %}
+  </main>
+</body>
+</html>

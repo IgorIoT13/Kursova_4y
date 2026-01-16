@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{{ bouquet.name }}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1>{{ bouquet.name }}</h1>
+    <nav><a href="/">Home</a> | <a href="/shop">Shop</a></nav>
+  </header>
+  <main>
+    <p>Flower: {{ bouquet.flower.name }} ({{ bouquet.flowers_count }}x)</p>
+    <p>Wrapping: {{ bouquet.wrapping.name }}</p>
+    <p>Price: {{ position.price if position else 'N/A' }} USD</p>
+    <p>Stock: {{ position.quantity if position else 0 }}</p>
+    {% if position and position.quantity > 0 %}
+    <form method="post" action="/cart/add/{{ position.id }}">
+      <label>Qty: <input name="quantity" type="number" min="1" max="{{ position.quantity }}" value="1" style="width:4rem"></label>
+      <button type="submit">Add to cart</button>
+    </form>
+    {% endif %}
+    {% if not is_admin and (not position or position.quantity == 0) and session.get('user_id') %}
+      <!-- subscription controls for out-of-stock bouquet -->
+      <form method="post" action="/subscribe/{{ bouquet.id }}" style="display:inline">
+        <button type="submit">Subscribe for availability</button>
+      </form>
+      <form method="post" action="/unsubscribe/{{ bouquet.id }}" style="display:inline;margin-left:0.5rem">
+        <button type="submit">Unsubscribe</button>
+      </form>
+    {% endif %}
+    {% if is_admin %}
+    <h3>Admin: Edit stock</h3>
+    <form method="post" action="/admin/positions/update/{{ position.id }}">
+      <label>Stock: <input name="quantity" type="number" min="0" value="{{ position.quantity if position else 0 }}" style="width:5rem"></label>
+      <button type="submit">Set</button>
+    </form>
+    {% endif %}
+  </main>
+  <footer>
+    <small>Demo shop</small>
+  </footer>
+</body>
+</html>

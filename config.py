@@ -15,7 +15,7 @@ class Config:
     DB_HOST = os.environ.get('DB_HOST', 'localhost')
     DB_PORT = os.environ.get('DB_PORT', '3306')
     DB_USER = os.environ.get('DB_USER', 'root')
-    DB_PASSWORD = os.environ.get('DB_PASSWORD', '')
+    DB_PASSWORD = os.environ.get('DB_PASSWORD', 'root')
     DB_NAME = os.environ.get('DB_NAME', 'flask_db')
     
     # SQLAlchemy configuration

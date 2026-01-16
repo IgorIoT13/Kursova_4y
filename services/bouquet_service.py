@@ -1,0 +1,60 @@
+from typing import Dict, Optional
+from builders.general_bouquet import GeneralBouquet
+from dao.bouquet_dao import BouquetDAO
+from models import Bouquet
+
+class BouquetService:
+    def __init__(self, session):
+        self.session = session
+        self.dao = BouquetDAO(None, session)  # model will be bound when used
+
+    def create_from_builder(self, builder: GeneralBouquet):
+        data = builder.build()
+        # create DAO with actual model import to avoid circulars
+        self.dao.model = Bouquet
+        # business-level uniqueness check
+        name = data.get('name')
+        if name:
+            existing = self.session.query(Bouquet).filter(Bouquet.name == name).first()
+            if existing:
+                raise ValueError(f"Bouquet with name '{name}' already exists")
+        return self.dao.create(**data)
+
+    def get(self, bouquet_id: int):
+        self.dao.model = Bouquet
+        return self.dao.get(bouquet_id)
+
+    def list(self, limit: int = 100, offset: int = 0):
+        self.dao.model = Bouquet
+        return self.dao.list(limit=limit, offset=offset)
+
+    def update(self, bouquet_id: int, **fields):
+        self.dao.model = Bouquet
+        # If updating name, ensure uniqueness
+        if 'name' in fields and fields['name']:
+            name = fields['name']
+            q = self.session.query(Bouquet).filter(Bouquet.name == name, Bouquet.id != bouquet_id)
+            if self.session.query(q.exists()).scalar():
+                raise ValueError(f"Bouquet with name '{name}' already exists")
+        return self.dao.update(bouquet_id, **fields)
+
+    def delete(self, bouquet_id: int):
+        # Ensure model bound
+        self.dao.model = Bouquet
+        # remove dependent positions first to avoid FK integrity issues
+        try:
+            from models import Position as _Position
+            # delete positions that reference this bouquet in a transaction
+            # use the session directly for efficient bulk delete
+            self.session.query(_Position).filter(_Position.bouquet_id == bouquet_id).delete(synchronize_session=False)
+            # commit deletion of positions
+            self.session.commit()
+        except Exception:
+            # if something goes wrong during cleanup, rollback and re-raise
+            try:
+                self.session.rollback()
+            except Exception:
+                pass
+            raise
+        # now delete bouquet
+        return self.dao.delete(bouquet_id)

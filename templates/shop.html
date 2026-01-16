@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Flower Shop - Shop</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1>Shop</h1>
+    <nav>
+      <a href="/">Home</a>
+      {% if session.get('user_id') %}
+        | <a href="/profile/{{ session.get('user_id') }}">My Account</a>
+        | <a href="/cart">Cart</a>
+        | <a href="/logout">Logout</a>
+      {% else %}
+        | <a href="/login">Login</a>
+      {% endif %}
+    </nav>
+  </header>
+  <main>
+    <h2>Available Bouquets</h2>
+    {% if is_admin %}
+      <p><a href="/create_bouquet">Create bouquet in shop (admin)</a> | <a href="/admin/bouquets">Manage Bouquets</a></p>
+    {% endif %}
+    {% if session.get('user_id') %}
+      <p><a href="/create_bouquet">Create your bouquet</a></p>
+    {% endif %}
+    <form method="get" action="/shop" style="margin-bottom:1rem">
+      <input type="search" name="q" placeholder="search bouquets" value="{{ request.args.get('q', '') }}">
+      <select name="flower_id">
+        <option value="">-- any flower --</option>
+        {% for f in flowers %}
+          <option value="{{ f.id }}" {% if request.args.get('flower_id') == (f.id|string) %}selected{% endif %}>{{ f.name }}</option>
+        {% endfor %}
+      </select>
+      <select name="wrapping_id">
+        <option value="">-- any wrapping --</option>
+        {% for w in wrappings %}
+          <option value="{{ w.id }}" {% if request.args.get('wrapping_id') == (w.id|string) %}selected{% endif %}>{{ w.name }}</option>
+        {% endfor %}
+      </select>
+      <select name="type_id">
+        <option value="">-- any type --</option>
+        {% for t in types %}
+          <option value="{{ t.id }}" {% if request.args.get('type_id') == (t.id|string) %}selected{% endif %}>{{ t.type }}</option>
+        {% endfor %}
+      </select>
+      <label>Min $<input name="min_price" type="number" step="0.01" value="{{ request.args.get('min_price','') }}" style="width:6rem"></label>
+      <label>Max $<input name="max_price" type="number" step="0.01" value="{{ request.args.get('max_price','') }}" style="width:6rem"></label>
+      <label><input type="checkbox" name="in_stock" value="1" {% if request.args.get('in_stock') %}checked{% endif %}> In stock only</label>
+      <button type="submit">Filter</button>
+      <a href="/shop">Reset</a>
+    </form>
+
+    <ul>
+      {% for pos in positions %}
+      <li>
+        <a href="/bouquet/{{ pos.bouquet.id }}">{{ pos.bouquet.name }}</a> — {{ pos.price }} USD ({{ pos.quantity }} in stock)
+        {% if is_admin %}
+          | <a href="/admin/bouquets/edit/{{ pos.bouquet.id }}">Edit</a>
+        {% endif %}
+        {% if pos.quantity > 0 %}
+        <form method="post" action="/cart/add/{{ pos.id }}" style="display:inline">
+          <label>Qty: <input name="quantity" type="number" min="1" max="{{ pos.quantity }}" value="1" style="width:4rem"></label>
+          <button type="submit">Add</button>
+        </form>
+        {% endif %}
+      </li>
+      {% else %}
+      <li>No positions available</li>
+      {% endfor %}
+    </ul>
+  </main>
+  <footer>
+    <small>Demo shop</small>
+  </footer>
+</body>
+</html>

@@ -1,33 +1,33 @@
-"""User model."""
-from datetime import datetime
+"""User model initializer."""
+from datetime import datetime, timezone
 
 
-def init_user_model(db):
-    """Initialize User model with db instance."""
-    
+def init_user_model(db, user_type_model):
     class User(db.Model):
-        """Example User model."""
         __tablename__ = 'users'
-        
+
         id = db.Column(db.Integer, primary_key=True)
-        username = db.Column(db.String(80), unique=True, nullable=False)
-        email = db.Column(db.String(120), unique=True, nullable=False)
-        created_at = db.Column(db.DateTime, default=datetime.utcnow)
-        
+        name = db.Column(db.String(120), nullable=False)
+        password = db.Column(db.String(255), nullable=False)
+        card = db.Column(db.String(60), nullable=True)  # strategy name stored as string
+        user_type_id = db.Column(db.Integer, db.ForeignKey('user_types.id'), nullable=True)
+        user_type = db.relationship(user_type_model, backref='users')
+        created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
         def __repr__(self):
-            return f'<User {self.username}>'
-        
+            return f"<User {self.name}>"
+
         def to_dict(self):
-            """Convert user object to dictionary."""
             return {
                 'id': self.id,
-                'username': self.username,
-                'email': self.email,
-                'created_at': self.created_at.isoformat() if self.created_at else None
+                'name': self.name,
+                'card': self.card,
+                'user_type_id': self.user_type_id,
+                'created_at': self.created_at.isoformat() if self.created_at else None,
             }
-    
+
     return User
 
 
-# This will be set by __init__.py after db is created
+# placeholder
 User = None

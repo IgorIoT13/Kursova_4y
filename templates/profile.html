@@ -1,0 +1,123 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Profile</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1>Profile</h1>
+    <nav>
+      <a href="/">Home</a> | <a href="/shop">Shop</a>
+      {% if session.get('user_id') %}
+        | <a href="/profile/{{ session.get('user_id') }}">My Account</a>
+        | <a href="/cart">Cart</a>
+        | <a href="/logout">Logout</a>
+      {% else %}
+        | <a href="/login">Login</a>
+      {% endif %}
+    </nav>
+  </header>
+  <main>
+    <h2>{{ user.name }}</h2>
+    <p>Card: {{ user.card or 'none' }}</p>
+    <p>Joined: {{ user.created_at }}</p>
+  <hr>
+  <h3>My Orders</h3>
+  {% if orders and orders|length > 0 %}
+      <ul>
+        {% for o in orders %}
+          <li>
+            Order #{{ o.id }} — Qty: {{ o.quantity }} — Total: {{ o.total_price }} — Position: {{ o.position_id }}
+            <form method="post" action="/profile/orders/cancel/{{ o.id }}" style="display:inline;margin-left:0.5rem" onsubmit="return confirm('Cancel this order?');">
+              <button type="submit" style="background:#c33;color:white;border:none;padding:0.2rem 0.5rem">Cancel</button>
+            </form>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>No orders yet.</p>
+    {% endif %}
+    <hr>
+    <h3>My Subscriptions</h3>
+    {% if subscriptions and subscriptions|length > 0 %}
+      <ul>
+        {% for s in subscriptions %}
+          <li>Bouquet #{{ s.bouquet_id }} (subscribed at {{ s.created_at }})
+            <form method="post" action="/unsubscribe/{{ s.bouquet_id }}" style="display:inline;margin-left:0.5rem">
+              <button type="submit">Unsubscribe</button>
+            </form>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>No subscriptions.</p>
+    {% endif %}
+
+    <hr>
+    <h3>Notifications</h3>
+    <ul id="notifications-list">
+        {% if notifications and notifications|length > 0 %}
+        {% for n in notifications %}
+          <li data-id="{{ n.id }}">
+            {{ n.message }} — {{ n.created_at }} {% if not n.read %}<strong>(new)</strong>{% endif %}
+            <form method="post" action="/profile/notifications/delete/{{ n.id }}" style="display:inline;margin-left:0.5rem">
+              <button type="submit" style="background:#c33;color:white;border:none;padding:0.2rem 0.4rem">Delete</button>
+            </form>
+          </li>
+        {% endfor %}
+      {% else %}
+        <!-- empty placeholder; JS will append live notifications here -->
+      {% endif %}
+    </ul>
+    <script>
+      // try to open an EventSource to receive live notifications
+      if (!!window.EventSource) {
+        const es = new EventSource('/events/notifications');
+    es.onmessage = function(e) {
+          try {
+            const ul = document.getElementById('notifications-list');
+            if (!ul) return;
+            const li = document.createElement('li');
+            li.textContent = e.data + ' (just now)';
+            // prepend
+            if (ul.firstChild) ul.insertBefore(li, ul.firstChild);
+            else ul.appendChild(li);
+      // also show a browser alert for immediate visibility
+      try { alert('Notification: ' + e.data); } catch (_) {}
+          } catch (err) {
+            // ignore
+          }
+        };
+        es.onerror = function() {
+          // silent fallback
+          es.close();
+        };
+      }
+      // polling fallback: periodically fetch persisted notifications and merge into list
+      (function pollNotifications(){
+        try{
+          const uid = {{ user.id | tojson }};
+          fetch('/debug/notifications/' + uid).then(r=>r.json()).then(data=>{
+            const ul = document.getElementById('notifications-list');
+            if(!ul) return;
+            // data is list newest-first; prepend any not already present
+            const existing = new Set(Array.from(ul.querySelectorAll('li')).map(li=>li.getAttribute('data-id')));
+            data.forEach(n=>{
+              if(!existing.has(String(n.id))){
+                const li = document.createElement('li');
+                li.setAttribute('data-id', n.id);
+                li.textContent = n.message + ' — ' + n.created_at + (n.read? '' : ' (new)');
+                if(ul.firstChild) ul.insertBefore(li, ul.firstChild);
+                else ul.appendChild(li);
+              }
+            });
+          }).catch(()=>{});
+        }catch(e){}
+        setTimeout(pollNotifications, 5000);
+      })();
+    </script>
+  </main>
+</body>
+</html>
